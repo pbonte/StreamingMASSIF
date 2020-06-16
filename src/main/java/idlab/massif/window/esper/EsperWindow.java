@@ -35,11 +35,12 @@ public class EsperWindow implements WindowInf {
 	private int counter;
 	@Override
 	public boolean addEvent(String event) {
+		System.out.println(event);
 		this.advanceTime(System.currentTimeMillis());
 		Model dataModel = ModelFactory.createDefaultModel();
 		try {
 			InputStream targetStream = new ByteArrayInputStream(event.getBytes());
-			dataModel.read(targetStream,"TTL");
+			dataModel.read(targetStream,null,"TTL");
 			StmtIterator it = dataModel.listStatements();
 			List<Statement> statements = new ArrayList<Statement>();
 			while (it.hasNext()) {

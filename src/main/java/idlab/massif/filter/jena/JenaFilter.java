@@ -44,34 +44,37 @@ public class JenaFilter implements FilterInf {
 
 	@Override
 	public boolean addEvent(String event) {
-		//add the data
+		logger.debug("Received message: " + event);
+		// add the data
 		Model dataModel = ModelFactory.createDefaultModel();
 		try {
 			InputStream targetStream = new ByteArrayInputStream(event.getBytes());
-			dataModel.read(targetStream,"RDF/XML");
+			dataModel.read(targetStream, "TTL");
 			StmtIterator it = dataModel.listStatements();
 			List<Statement> statements = new ArrayList<Statement>();
 			while (it.hasNext()) {
 				statements.add(it.next());
 			}
 			infModel.add(statements);
-			//execute the query
-			int queryId=0;
-			for(Query query: queries) {
+			// execute the query
+			int queryId = 0;
+			for (Query query : queries) {
 				try (QueryExecution qexec = QueryExecutionFactory.create(query, infModel)) {
 					Model result = qexec.execConstruct();
-					String syntax = "TURTLE"; // also try "N-TRIPLE" and "TURTLE"
-					StringWriter out = new StringWriter();
-					result.write(out, syntax);
-					String resultString = out.toString();
-					//notify the listener
-					listener.notify(queryId,resultString);
+					if (!result.isEmpty()) {
+						String syntax = "TURTLE"; // also try "N-TRIPLE" and "TURTLE"
+						StringWriter out = new StringWriter();
+						result.write(out, syntax);
+						String resultString = out.toString();
+						// notify the listener
+						listener.notify(queryId, resultString);
+					}
 				}
 				queryId++;
 
 			}
-			
-			//remove the data
+
+			// remove the data
 			infModel.remove(statements);
 			return true;
 
@@ -94,12 +97,12 @@ public class JenaFilter implements FilterInf {
 			queries = new ArrayList<Query>();
 		}
 		Query query = QueryFactory.create(queryString);
-		if(!query.isConstructType()) {		
+		if (!query.isConstructType()) {
 			logger.error("Only construct queries allowed");
 			return -1;
 		}
 		queries.add(query);
-		return queries.size()-1;
+		return queries.size() - 1;
 	}
 
 	@Override
@@ -119,7 +122,7 @@ public class JenaFilter implements FilterInf {
 
 		try {
 			if (dataSource != null) {
-				this.infModel.read(dataSource, "RDF/XML");
+				this.infModel.read(dataSource);
 			}
 			if (rules != null) {
 
