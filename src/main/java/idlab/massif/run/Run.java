@@ -13,6 +13,7 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import idlab.massif.abstraction.hermit.HermitAbstractionImpl;
 import idlab.massif.cep.esper.EsperCEPImpl;
 import idlab.massif.core.PipeLine;
+import idlab.massif.core.PipeLineGraph;
 import idlab.massif.interfaces.core.AbstractionInf;
 import idlab.massif.interfaces.core.AbstractionListenerInf;
 import idlab.massif.interfaces.core.CEPInf;
@@ -44,13 +45,15 @@ public class Run {
         get("/hello", (req, res) -> "MASSIF ONLINE");
         
         post("/register",(req, res) -> {register(req.body()); res.status(200);return res;});
-        post("/send",(req, res) -> {engine.addEvent(req.body()); return res.status();});
+        //post("/send",(req, res) -> {engine.addEvent(req.body()); return res.status();});
         
 	}
 	public  void register(String query) {
 		QueryParser parser = new QueryParser();
 		try {
-			this.engine = parser.parse(query);
+			PipeLineGraph graph = parser.parse(query);
+			//add manual access point
+			
 		} catch (OWLOntologyCreationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

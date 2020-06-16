@@ -12,117 +12,147 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import idlab.massif.abstraction.hermit.HermitAbstractionImpl;
 import idlab.massif.cep.esper.EsperCEPImpl;
 import idlab.massif.core.PipeLine;
+import idlab.massif.core.PipeLineComponent;
+import idlab.massif.core.PipeLineGraph;
+import idlab.massif.filter.jena.JenaFilter;
 import idlab.massif.interfaces.core.AbstractionInf;
 import idlab.massif.interfaces.core.AbstractionListenerInf;
 import idlab.massif.interfaces.core.CEPInf;
 import idlab.massif.interfaces.core.CEPListener;
+import idlab.massif.interfaces.core.FilterInf;
 import idlab.massif.interfaces.core.SelectionInf;
 import idlab.massif.interfaces.core.SelectionListenerInf;
-
+import idlab.massif.interfaces.core.SinkInf;
+import idlab.massif.interfaces.core.SourceInf;
+import idlab.massif.interfaces.core.WindowInf;
 import idlab.massif.selection.csparql_basic.CSparqlSelectionImpl;
 import idlab.massif.sinks.PrintSink;
+import idlab.massif.sources.HTTPPostSource;
+import idlab.massif.sources.KafkaSource;
+import idlab.massif.window.esper.EsperWindow;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class QueryParser {
+	
+	public static PipeLineComponent parseComponent(JSONObject comp) {
+		String compType = comp.getString("type").toLowerCase();
+		PipeLineComponent pipeComp = null;
+		switch(compType) {
+		  case "sink":
+			  String impl = comp.getString("impl");
+			  if(impl.equals("PrintSink")) {
+				  SinkInf printSink = new PrintSink();
+				  pipeComp = new PipeLineComponent(printSink,Collections.EMPTY_LIST);
+			  }
+		    // code block
+		    break;
+		  case "filter":
+			  impl = "jena";
+			  if(comp.has("impl")) {
+				  impl = comp.getString("impl");
+			  }
+			  if(impl.equals("jena")){
+				  FilterInf filter = new JenaFilter();
+				  JSONArray queries = comp.getJSONArray("queries");
+				  for (int i = 0; i < queries.length(); i++) {
+					  int filterQueryID=filter.registerContinuousQuery(queries.getString(i));
+				  }
+				  filter.start();
+				  pipeComp = new PipeLineComponent(filter,Collections.EMPTY_LIST);
+			  }
+		    // code block
+		    break;
+		  case "window":
+			  int size = comp.getInt("size");
+			  int slide = size;
+			  if(comp.has("slide")) {
+				  slide=comp.getInt("slide");
+			  }
+			  WindowInf window = new EsperWindow();
+			  window.setWindowSize(size,slide);
+			  window.start();
+			  pipeComp = new PipeLineComponent(window,Collections.EMPTY_LIST);
+			  break;
+		  case "abstract":
+		    // code block
+			  AbstractionInf abstractor = new HermitAbstractionImpl();
+			  if(comp.has("ontologyIRI")) {
+				  String ontologyIRI = comp.getString("ontologyIRI");
+				  OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+				  OWLOntology ontology;
+				try {
+					ontology = manager.loadOntology(IRI.create(ontologyIRI));
+					abstractor.setOntology(ontology);
+				} catch (OWLOntologyCreationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				  
+			  }
+			  JSONArray queries = comp.getJSONArray("expressions");
+			  for (int i = 0; i < queries.length(); i++) {
+				  JSONObject exp = queries.getJSONObject(i);
+				  String head = exp.getString("head");
+				  String tail = exp.getString("tail");
+				  abstractor.registerDLQuery(head, tail);
+			  }
+			  pipeComp = new PipeLineComponent(abstractor,Collections.EMPTY_LIST);
+			  break;
+		  case "source":
+			  impl = comp.getString("impl").toLowerCase();
+			  if(impl.equals("kafkasource")) {
+				  KafkaSource kafkaSource = new KafkaSource(comp.getString("kafkaServer"),comp.getString("kafkaTopic"));
+				  pipeComp = new PipeLineComponent(kafkaSource,Collections.EMPTY_LIST);
+			  }
+			  if(impl.equals("httppostsource")) {
+				  HTTPPostSource postSource = new HTTPPostSource(comp.getString("path"),comp.getInt("port"));
+				  pipeComp = new PipeLineComponent(postSource,Collections.EMPTY_LIST);
+			  }
+				  
+		}
+		return pipeComp;
+	}
 
-	public static PipeLine parse(String query) throws OWLOntologyCreationException {
+	public static PipeLineGraph parse(String query) throws OWLOntologyCreationException {
+		Map<String,PipeLineComponent> pipelineComponents = new HashMap<String,PipeLineComponent>();
 		JSONObject obj = new JSONObject(query);
-		String sparqlQuery = "";
-		String classExpression = "";
-		String newHead = "";
-		OWLOntology ontology = null;
-		String querySub = "";
-		Set<String> eventTypes = new HashSet<String>();
-		Map<String, ?> config = obj.toMap();
-		if (obj.has("ontology")) {
-			String ontologyString = obj.getString("ontology");
-			AbstractionInf abstractor = new HermitAbstractionImpl();
-			// load ontology
-			OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+		if(!obj.has("components")) {
+			return null;
+		}else {
+			JSONObject components = obj.getJSONObject("components");
 
-			if (ontologyString.startsWith("http://")) {
-				ontology = manager.loadOntologyFromOntologyDocument(IRI.create(ontologyString));
-			} else {
-				ontology = manager.loadOntologyFromOntologyDocument(new StringDocumentSource(ontologyString));
-			}
-
-			abstractor.setOntology(ontology);
-		}
-		if (obj.has("classExpression")) {
-			JSONArray expressions = obj.getJSONArray("classExpression");
-			for (int i = 0; i < expressions.length(); i++) {
-				newHead = expressions.getJSONObject(i).getString("head");
-				classExpression = expressions.getJSONObject(i).getString("tail");
-
-			}
-
-		}
-		if (obj.has("cep")) {
-			JSONArray expressions = obj.getJSONArray("cep");
-			for (int i = 0; i < expressions.length(); i++) {
-				querySub = expressions.getJSONObject(i).getString("query");
-				List<Object> types = expressions.getJSONObject(i).getJSONArray("types").toList();
-				types.forEach(t -> eventTypes.add(t.toString()));
-
-			}
-
-		}
-		if (obj.has("sparql")) {
-			sparqlQuery = obj.getString("sparql");
-			System.out.println(sparqlQuery);
-		}
-		if (obj.has("source")) {
-			JSONArray sources = obj.getJSONArray("source");
-			for (int i = 0; i < sources.length(); i++) {
-				String sourceType = sources.getJSONObject(i).getString("type");
-				if(sourceType.equals("POST")) {
-					int sourcePort = sources.getJSONObject(i).getInt("port");
-					System.out.println(sourceType + sourcePort);
-				}else
-					if(sourceType.equals("KAFKA")) {
-						String kafkaServer = sources.getJSONObject(i).getString("kafkaServer");
-						String kafkaTopic = sources.getJSONObject(i).getString("kafkaTopic");
-					}
+			for(String key : components.keySet()) {
+				JSONObject comp = components.getJSONObject(key);
+				
+				pipelineComponents.put(key,parseComponent(comp));
 			}
 		}
-		if (obj.has("sink")) {
-			JSONArray sources = obj.getJSONArray("sink");
-			for (int i = 0; i < sources.length(); i++) {
-				String sinkType = sources.getJSONObject(i).getString("type");
-
+		//configure the graph
+		JSONObject configs = obj.getJSONObject("configuration");
+		for(String key : configs.keySet()) {
+			JSONArray linked = configs.getJSONArray(key);
+			ArrayList<PipeLineComponent> linkedComps = new ArrayList<PipeLineComponent>();
+			for (int i = 0; i < linked.length(); i++) {
+				linkedComps.add(pipelineComponents.get(linked.get(i).toString()));
 			}
+			pipelineComponents.get(key).setOutput(linkedComps);
 		}
-		// ---- define RSP
-		CSparqlSelectionImpl rsp = new CSparqlSelectionImpl();
-		AbstractionInf abstractor = new HermitAbstractionImpl();
-		CEPInf cepEngine = new EsperCEPImpl();
+		//start the sources
 		
-		// ---- create the pipeline
-		PipeLine pipeline = new PipeLine(rsp,abstractor,cepEngine);
-		PrintSink printSink = new PrintSink();
-		pipeline.registerSink(printSink);
+		for(PipeLineComponent comp : pipelineComponents.values()) {
+			if(comp.getElement() instanceof SourceInf) {
+				comp.getElement().start();
+			}
+		}
 
-		rsp.registerContinuousQuery(sparqlQuery, 1, 1);
-		rsp.addListener(pipeline);
-		rsp.setStaticData(null);
-		SelectionInf engine = rsp.builtEngine();
-		// ---- define abstraction
-		
-
-		abstractor.setOntology(ontology);
-		// register new DL query
-
-		abstractor.registerDLQuery(newHead, classExpression, pipeline);
-		// ---- define CEP
-
-
-		cepEngine.registerQuery(querySub, eventTypes, pipeline);
-
-		return pipeline;
+		return new PipeLineGraph(pipelineComponents);
 	}
 
 

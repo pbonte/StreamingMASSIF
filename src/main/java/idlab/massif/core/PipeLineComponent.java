@@ -30,6 +30,9 @@ public class PipeLineComponent implements ListenerInf {
 
 	}
 
+	public void setOutput(List<PipeLineComponent> output) {
+		this.output = output;
+	}
 	public void addEvent(String event) {
 		// add all arriving events to the queue
 		queue.execute(new Runnable() {
@@ -60,5 +63,9 @@ public class PipeLineComponent implements ListenerInf {
 			}
 		}
 	}
+	public PipeLineElement getElement() {
+		return element;
+	}
+	
 
 }

@@ -41,7 +41,14 @@ public class HermitAbstractionImpl implements AbstractionInf {
 	private DLQueryParser parser;
 
 	public HermitAbstractionImpl() {
-
+		this.manager = OWLManager.createOWLOntologyManager();
+		try {
+			this.ontology = manager.createOntology();
+			initiateReasoner();
+		} catch (OWLOntologyCreationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public HermitAbstractionImpl(OWLOntology ontology) {

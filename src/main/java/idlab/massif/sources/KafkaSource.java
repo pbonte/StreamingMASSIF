@@ -118,6 +118,6 @@ public class KafkaSource implements SourceInf {
 	@Override
 	public void start() {
 		// TODO Auto-generated method stub
-		
+		this.stream();
 	}
 }

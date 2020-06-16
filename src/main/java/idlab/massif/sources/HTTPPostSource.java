@@ -30,7 +30,7 @@ public class HTTPPostSource implements SourceInf {
 	}
 
 	public void stream() {
-		Spark.port(this.port);
+		//Spark.port(this.port);
 		Spark.post("/" + path, (req, res) -> {	
 			if(pipeline!=null) {
 			this.pipeline.addEvent(req.body());
@@ -58,6 +58,6 @@ public class HTTPPostSource implements SourceInf {
 	@Override
 	public void start() {
 		// TODO Auto-generated method stub
-		
+		this.stream();
 	}
 }

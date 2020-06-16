@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import idlab.massif.core.PipeLine;
+import idlab.massif.core.PipeLineGraph;
 import idlab.massif.interfaces.core.SelectionInf;
 import idlab.massif.run.QueryParser;
 
@@ -20,41 +21,59 @@ public class QueryTest {
 				+"\"source\":[{\"type\":\"POST\",\"port\":9090}]"
 				+ "}";
 		
-		System.out.println(query);
-		String query2 = "{\"ontology\":\""+ONT_STRING.replace("\"", "\\\"")+"\","
-				
-				+"\"classExpression\": [{\"tail\":\"Observation and (observedProperty some LightIntensity)\",\"head\":\"http://massif.test/EventA\"}],"
-				+"\"cep\":[{\"query\":\"a=EventA or b=EventB\",\"types\":[\"EventA\",\"EventB\"]}],"
-				+"\"sparql\":\"PREFIX : <http://streamreasoning.org/iminds/massif/> CONSTRUCT{?work ?pred ?type.} WHERE  {  ?work ?pred ?type. }\","
-				+"\"source\":[{\"type\":\"KAFKA\",\"server\":\"localhost:9092\",\"topic\":\"semantic-input\"}]"
-				+ "}";
+		//System.out.println(query);
+		String query2 = "{\"components\":{\"comp1\":{\"type\":\"Sink\",\"impl\":\"PrintSink\"},\"comp2\":{\"type\":\"window\",\"size\":5,\"slide\":1},comp3:{\"type\":\"Filter\",\"queries\":[]},\"comp4\":{\"type\":\"Abstract\",\"expressions\":[{\"head\":\"http://massif.test/EventA\",\"tail\":\"Observation and (observedProperty some LightIntensity)\"}]},\"comp5\":{\"type\":\"Source\",\"impl\":\"KafkaSource\",\"kafkaServer\":\"localhost:9092\",\"kafkaTopic\":\"semantic-input\"}}, \"configuration\":{\"comp1\":[],\"comp2\":[\"comp3\"],\"comp3\":[\"comp1\"]}}";
+		String query3="{\n" + 
+				"  \"components\": {\n" + 
+				"    \"comp1\": {\n" + 
+				"      \"type\": \"Sink\",\n" + 
+				"      \"impl\": \"PrintSink\"\n" + 
+				"    },\n" + 
+				"    \"comp2\": {\n" + 
+				"      \"type\": \"window\",\n" + 
+				"      \"size\": 1,\n" + 
+				"      \"slide\": 1\n" + 
+				"    },\n" + 
+				"    \"comp3\": {\n" + 
+				"      \"type\": \"Filter\",\n" + 
+				"      \"queries\": [\"CONSTRUCT{?s ?p ?p.} WHERE {?s ?p ?o}\"]\n" + 
+				"    },\n" + 
+				"    \"comp4\": {\n" + 
+				"      \"type\": \"Abstract\",\n" + 
+				"      \"expressions\": [\n" + 
+				"        {\n" + 
+				"          \"head\": \"http://massif.test/EventA\",\n" + 
+				"          \"tail\": \"Observation\"\n" + 
+				"        }\n" + 
+				"      ]\n" + 
+				"    },\n" + 
+				"    \"comp5\": {\n" + 
+				"      \"type\": \"Source\",\n" + 
+				"      \"impl\": \"HTTPPostSource\",\n" + 
+				"      \"path\": \"send\",\n" + 
+				"      \"port\": 9000\n" + 
+				"    }\n" + 
+				"  },\n" + 
+				"  \"configuration\": {\n" + 
+				"    \"comp1\": [],\n" + 
+				"    \"comp3\": [\n" + 
+				"      \"comp4\"\n" + 
+				"    ],\n" + 
+				"    \"comp2\": [\n" + 
+				"      \"comp3\"\n" + 
+				"    ],\n" + 
+				"    \"comp5\": [\n" + 
+				"      \"comp2\"\n" + 
+				"    ],\n" + 
+				"    \"comp4\": [\n" + 
+				"      \"comp1\"\n" + 
+				"    ]\n" + 
+				"  }\n" + 
+				"}";
 		QueryParser parser = new QueryParser();
 		try {
-			PipeLine engine = parser.parse(query2);
-			// add the event
-			engine.addEvent(ONT_EVENT);
-			engine.addEvent(ONT_EVENT);
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			engine.addEvent(ONT_EVENT);
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			engine.addEvent(ONT_EVENT);
-			try {
-				Thread.sleep(3000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			engine.addEvent(ONT_EVENT);
+			PipeLineGraph engine = parser.parse(query3);
+			
 			
 		} catch (OWLOntologyCreationException e) {
 			// TODO Auto-generated catch block

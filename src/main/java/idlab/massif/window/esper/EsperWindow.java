@@ -135,7 +135,7 @@ public class EsperWindow implements WindowInf {
 	private String convertToStringEvent(List<Statement> statements) {
 		Model result = ModelFactory.createDefaultModel();
 		result.add(statements);
-		String syntax = "RDF/XML"; // also try "N-TRIPLE" and "TURTLE"
+		String syntax = "TTL"; // also try "N-TRIPLE" and "TURTLE"
 		StringWriter out = new StringWriter();
 		result.write(out, syntax);
 		String resultString = out.toString();
