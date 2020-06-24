@@ -1,5 +1,6 @@
 package idlab.massif.run;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -26,38 +27,46 @@ import org.json.JSONObject;
 
 
 public class Run {
-
+	Map<String,PipeLineGraph> configs;
+	int configCounter = 0;
 	public static void main(String[] args) throws Exception {
 		Run r = new Run();
 		r.run();
 		
-        
-
-		
-			
-
+    
 	}
 
 	private PipeLine engine;
 	
 	public Run() {
+		configs = new HashMap<String,PipeLineGraph>();
 		port(9000);
         get("/hello", (req, res) -> "MASSIF ONLINE");
         
-        post("/register",(req, res) -> {register(req.body()); res.status(200);return res;});
+        post("/register",(req, res) ->  register(req.body()));
+        post("/stop",(req, res) ->  stop(req.body()));
         //post("/send",(req, res) -> {engine.addEvent(req.body()); return res.status();});
+        System.out.println("MASSIF ONLINE");
         
 	}
-	public  void register(String query) {
+	public String stop(String queryID) {
+		PipeLineGraph g = configs.get(queryID);
+		g.stop();
+		
+		return "ok";
+	}
+	public  String register(String query) {
 		QueryParser parser = new QueryParser();
 		try {
 			PipeLineGraph graph = parser.parse(query);
-			//add manual access point
-			
+			String id = ++configCounter+"";
+			configs.put(id, graph);
+			return id;
 		} catch (OWLOntologyCreationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return null;
 
 	}
 

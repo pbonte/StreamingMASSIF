@@ -60,4 +60,9 @@ public class HTTPPostSource implements SourceInf {
 		// TODO Auto-generated method stub
 		this.stream();
 	}
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+		
+	}
 }

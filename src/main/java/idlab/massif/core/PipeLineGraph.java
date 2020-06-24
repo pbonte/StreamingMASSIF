@@ -9,5 +9,8 @@ public class PipeLineGraph {
 	public PipeLineGraph(Map<String,PipeLineComponent> pipecomps) {
 		this.pipecomps = pipecomps;
 	}
+	public void stop() {
+		pipecomps.values().stream().forEach(p->p.getElement().stop());
+	}
 
 }

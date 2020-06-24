@@ -72,5 +72,10 @@ public class FileSource implements SourceInf {
 		// TODO Auto-generated method stub
 
 	}
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+
+	}
 
 }

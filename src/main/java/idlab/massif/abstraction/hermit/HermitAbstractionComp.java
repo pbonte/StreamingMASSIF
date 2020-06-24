@@ -233,4 +233,10 @@ public class HermitAbstractionComp implements AbstractionInf {
 		}
 	}
 
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

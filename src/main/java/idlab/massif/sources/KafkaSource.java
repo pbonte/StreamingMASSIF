@@ -63,6 +63,7 @@ public class KafkaSource implements SourceInf {
 	private String kafkaTopic;
 	private Properties props;
 	private ListenerInf listener;
+	private KafkaStreams streams;
 	
 	public KafkaSource(String kafkaServer, String kafkaTopic) {
 		this.kafkaServer = kafkaServer;
@@ -95,6 +96,7 @@ public class KafkaSource implements SourceInf {
 
 		final Topology topology = builder.build();
 		final KafkaStreams streams = new KafkaStreams(topology, this.props);
+		this.streams = streams;
 
 		streams.cleanUp();
 
@@ -119,5 +121,9 @@ public class KafkaSource implements SourceInf {
 	public void start() {
 		// TODO Auto-generated method stub
 		this.stream();
+	}
+	@Override
+	public void stop() {
+		streams.close();
 	}
 }

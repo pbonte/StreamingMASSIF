@@ -33,9 +33,9 @@ public class EsperWindow implements WindowInf {
 	private EPRuntime cepRT;
 	private ListenerInf listener;
 	private int counter;
+	private EPServiceProvider cep;
 	@Override
 	public boolean addEvent(String event) {
-		System.out.println(event);
 		this.advanceTime(System.currentTimeMillis());
 		Model dataModel = ModelFactory.createDefaultModel();
 		try {
@@ -93,13 +93,13 @@ public class EsperWindow implements WindowInf {
 		cep_config.getEngineDefaults().getMetricsReporting().setEnableMetricsReporting(true);
 		cep_config.getEngineDefaults().getLogging().setEnableQueryPlan(true);
 
-		EPServiceProvider cep = EPServiceProviderManager.getDefaultProvider(cep_config);
+		this.cep = EPServiceProviderManager.getDefaultProvider(cep_config);
 		this.cepRT = cep.getEPRuntime();
 		EPAdministrator cepAdm = cep.getEPAdministrator();
 		EPServiceProvider epService = EPServiceProviderManager.getDefaultProvider();
 		EPDeploymentAdmin deployAdmin = cepAdm.getDeploymentAdmin();
 		cep.getEPAdministrator().getConfiguration().addEventType(GraphEvent.class);
-
+		
 		String eplStatement = String.format("select * from GraphEvent#time(%s sec) output snapshot every %s seconds",
 				windowSize, windowSlide);
 
@@ -140,6 +140,12 @@ public class EsperWindow implements WindowInf {
 		result.write(out, syntax);
 		String resultString = out.toString();
 		return resultString;
+	}
+
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+		this.cep.getEPAdministrator().destroyAllStatements();
 	}
 
 }

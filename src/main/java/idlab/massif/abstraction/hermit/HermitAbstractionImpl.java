@@ -203,6 +203,12 @@ public class HermitAbstractionImpl implements AbstractionInf {
 		return 0;
 	}
 
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 
 
